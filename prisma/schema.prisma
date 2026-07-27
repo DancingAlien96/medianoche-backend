@@ -1,0 +1,129 @@
+// Prisma schema for Medianoche e-commerce
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CONTRA_ENTREGA
+  TRANSFERENCIA
+  VISA_CUOTAS
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  // Null for accounts created via an external provider (e.g. Google).
+  password    String?
+  name        String
+  role        Role         @default(USER)
+  provider    AuthProvider @default(LOCAL)
+  firebaseUid String?      @unique
+  avatarUrl   String?
+  cartItems   CartItem[]
+  orders      Order[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String
+  // Price stored in the smallest currency unit (cents) to avoid float issues.
+  priceCents  Int
+  // Cover image (kept in sync with images[0] for cards, cart & order snapshots).
+  imageUrl    String
+  // Full gallery; first item is the cover.
+  images      String[]   @default([])
+  stock       Int        @default(0)
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id])
+  cartItems   CartItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([categoryId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One row per product per user; adding again bumps the quantity.
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        OrderStatus   @default(PENDING)
+  customerName  String
+  phone         String
+  address       String
+  city          String
+  notes         String?
+  paymentMethod PaymentMethod
+  subtotalCents Int
+  shippingCents Int
+  totalCents    Int
+  items         OrderItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // Snapshot of the product at purchase time (kept even if the product changes).
+  productId   String?
+  productName String
+  priceCents  Int
+  quantity    Int
+  imageUrl    String
+
+  @@index([orderId])
+}

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: medianoche-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: medianoche
+      POSTGRES_PASSWORD: medianoche
+      POSTGRES_DB: medianoche
+    # Host 5433 -> container 5432 (5432 is often taken by a local Postgres install)
+    ports:
+      - '5433:5432'
+    volumes:
+      - medianoche_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U medianoche -d medianoche']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  medianoche_pgdata:
