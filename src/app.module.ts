@@ -9,6 +9,7 @@ import { CartModule } from './cart/cart.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MailModule } from './mail/mail.module';
 import { OrdersModule } from './orders/orders.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OrdersModule } from './orders/orders.module';
     CartModule,
     UploadsModule,
     OrdersModule,
+    SeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],
